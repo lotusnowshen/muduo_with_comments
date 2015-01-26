@@ -30,25 +30,29 @@ class Condition : boost::noncopyable
 
   void wait()
   {
+    // 为什么要加这一行？
     MutexLock::UnassignGuard ug(mutex_);
     MCHECK(pthread_cond_wait(&pcond_, mutex_.getPthreadMutex()));
   }
 
   // returns true if time out, false otherwise.
+  // 等待数秒，如果超时退出返回True，否则返回False
   bool waitForSeconds(int seconds);
 
+  // 通知某个线程
   void notify()
   {
     MCHECK(pthread_cond_signal(&pcond_));
   }
 
+  // 通知所有等待的线程
   void notifyAll()
   {
     MCHECK(pthread_cond_broadcast(&pcond_));
   }
 
  private:
-  MutexLock& mutex_;
+  MutexLock& mutex_;  //思考为什么要使用引用
   pthread_cond_t pcond_;
 };
 
