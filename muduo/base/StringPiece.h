@@ -48,9 +48,13 @@
 #include <string>
 #endif
 
+// 这是Google的一段开源代码
+// 可以接受C-style和string两种参数
+// 同时避免了内存分配的开销
 namespace muduo {
 
 // For passing C-style string argument to a function.
+// 使用它来传递C风格字符串
 class StringArg // copyable
 {
  public:
@@ -76,18 +80,19 @@ class StringArg // copyable
 
 class StringPiece {
  private:
-  const char*   ptr_;
-  int           length_;
+  const char*   ptr_;     // 字节的首地址
+  int           length_;  // 字符串的长度
 
  public:
   // We provide non-explicit singleton constructors so users can pass
   // in a "const char*" or a "string" wherever a "StringPiece" is
   // expected.
+  // 这里构造函数都是非explicit，这样可以在传参时进行隐式转换
   StringPiece()
     : ptr_(NULL), length_(0) { }
   StringPiece(const char* str)
     : ptr_(str), length_(static_cast<int>(strlen(ptr_))) { }
-  StringPiece(const unsigned char* str)
+  StringPiece(const unsigned char* str) // 需要进行指针转换
     : ptr_(reinterpret_cast<const char*>(str)),
       length_(static_cast<int>(strlen(ptr_))) { }
   StringPiece(const string& str)
@@ -105,6 +110,7 @@ class StringPiece {
   // terminated string.  Use "as_string().c_str()" if you really need to do
   // this.  Or better yet, change your routine so it does not rely on NUL
   // termination.
+  // data函数是不安全的，因为ptr指示的内容未必以'\0'结尾
   const char* data() const { return ptr_; }
   int size() const { return length_; }
   bool empty() const { return length_ == 0; }
@@ -117,6 +123,7 @@ class StringPiece {
     ptr_ = str;
     length_ = static_cast<int>(strlen(str));
   }
+  // void*与上面的unsigned char*一样，需要使用reinterpret_cast进行指针转换
   void set(const void* buffer, int len) {
     ptr_ = reinterpret_cast<const char*>(buffer);
     length_ = len;
@@ -124,11 +131,13 @@ class StringPiece {
 
   char operator[](int i) const { return ptr_[i]; }
 
+  // 删除长度为n的前缀
   void remove_prefix(int n) {
     ptr_ += n;
     length_ -= n;
   }
 
+  // 删除长度为n的后缀
   void remove_suffix(int n) {
     length_ -= n;
   }
@@ -141,17 +150,20 @@ class StringPiece {
     return !(*this == x);
   }
 
+// 这段宏定义了一个通用的比较操作符模板
 #define STRINGPIECE_BINARY_PREDICATE(cmp,auxcmp)                             \
   bool operator cmp (const StringPiece& x) const {                           \
     int r = memcmp(ptr_, x.ptr_, length_ < x.length_ ? length_ : x.length_); \
     return ((r auxcmp 0) || ((r == 0) && (length_ cmp x.length_)));          \
   }
+  // 下面四行代码分别定义了 < <= >= >四个操作符
   STRINGPIECE_BINARY_PREDICATE(<,  <);
   STRINGPIECE_BINARY_PREDICATE(<=, <);
   STRINGPIECE_BINARY_PREDICATE(>=, >);
   STRINGPIECE_BINARY_PREDICATE(>,  >);
 #undef STRINGPIECE_BINARY_PREDICATE
 
+  // 比较两个字符串大小，类似strcmp的返回值
   int compare(const StringPiece& x) const {
     int r = memcmp(ptr_, x.ptr_, length_ < x.length_ ? length_ : x.length_);
     if (r == 0) {
@@ -161,10 +173,12 @@ class StringPiece {
     return r;
   }
 
+  // 使用ptr和length指示的字节，构造一个string对象
   string as_string() const {
     return string(data(), size());
   }
 
+  // 把其中的值赋给一个已经存在的string对象
   void CopyToString(string* target) const {
     target->assign(ptr_, length_);
   }
@@ -176,6 +190,9 @@ class StringPiece {
 #endif
 
   // Does "this" start with "x"
+  // 判断该字符串是否以x开头
+  // 这段代码体现了StringPiece的优点，既可以接受C风格字符串，也可以接受string对象
+  // 而且可以避免内存分配，节省开销
   bool starts_with(const StringPiece& x) const {
     return ((length_ >= x.length_) && (memcmp(ptr_, x.ptr_, x.length_) == 0));
   }
@@ -190,6 +207,12 @@ class StringPiece {
 //  cannot safely store a StringPiece into an STL container
 // ------------------------------------------------------------------
 
+// 提供某些STL容易所需要的trait特性，这里涉及到STL Traits的概念和POD的概念
+// 是否具有非平凡的构造函数 
+// 是否具有非平凡的复制构造函数
+// 是否具有非平凡的赋值运算符
+// 是否具有非平凡的析构函数
+// 是否是POD类型
 #ifdef HAVE_TYPE_TRAITS
 // This makes vector<StringPiece> really fast for some STL implementations
 template<> struct __type_traits<muduo::StringPiece> {

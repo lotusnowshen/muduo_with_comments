@@ -20,7 +20,7 @@ namespace muduo
 class Thread : boost::noncopyable
 {
  public:
-  typedef boost::function<void ()> ThreadFunc;
+  typedef boost::function<void ()> ThreadFunc; //线程回调函数
 
   explicit Thread(const ThreadFunc&, const string& name = string());
 #ifdef __GXX_EXPERIMENTAL_CXX0X__
