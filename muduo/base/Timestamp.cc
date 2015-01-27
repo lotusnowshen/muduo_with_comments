@@ -3,6 +3,7 @@
 #include <sys/time.h>
 #include <stdio.h>
 
+//这里这样做是为了保证int64_t的跨平台性
 #ifndef __STDC_FORMAT_MACROS
 #define __STDC_FORMAT_MACROS
 #endif
@@ -13,6 +14,7 @@
 
 using namespace muduo;
 
+// 使用了boost的静态断言
 BOOST_STATIC_ASSERT(sizeof(Timestamp) == sizeof(int64_t));
 
 Timestamp::Timestamp(int64_t microseconds)
@@ -20,6 +22,7 @@ Timestamp::Timestamp(int64_t microseconds)
 {
 }
 
+// 格式化为1422366082.375828 类型的double数字符串
 string Timestamp::toString() const
 {
   char buf[32] = {0};
@@ -29,6 +32,7 @@ string Timestamp::toString() const
   return buf;
 }
 
+// 格式化为：19940321 14:23:51:236543 可以根据参数设置是否显示微秒
 string Timestamp::toFormattedString(bool showMicroseconds) const
 {
   char buf[32] = {0};
@@ -53,6 +57,7 @@ string Timestamp::toFormattedString(bool showMicroseconds) const
   return buf;
 }
 
+// 返回一个时间戳，表示当前时刻
 Timestamp Timestamp::now()
 {
   struct timeval tv;
@@ -61,6 +66,7 @@ Timestamp Timestamp::now()
   return Timestamp(seconds * kMicroSecondsPerSecond + tv.tv_usec);
 }
 
+// 返回一个无效时间戳，默认为0
 Timestamp Timestamp::invalid()
 {
   return Timestamp();
