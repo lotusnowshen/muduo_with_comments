@@ -17,6 +17,8 @@ char require_32_bit_integer_at_least[sizeof(int) >= sizeof(int32_t) ? 1 : -1];
 // http://www.faqs.org/faqs/calendars/faq/part2/
 // http://blog.csdn.net/Solstice
 
+
+// 这个算法将年月日对应的日期，换算成该日期对应的儒略日
 int getJulianDayNumber(int year, int month, int day)
 {
   (void) require_32_bit_integer_at_least; // no warning please
@@ -26,6 +28,7 @@ int getJulianDayNumber(int year, int month, int day)
   return day + (153*m + 2) / 5 + y*365 + y/4 - y/100 + y/400 - 32045;
 }
 
+// 这个算法则是将儒略日换算成公历的日期
 struct Date::YearMonthDay getYearMonthDay(int julianDayNumber)
 {
   int a = julianDayNumber + 32044;
@@ -41,6 +44,9 @@ struct Date::YearMonthDay getYearMonthDay(int julianDayNumber)
   return ymd;
 }
 }
+
+// 这个常量保存的是1970-01-01对应的儒略日
+// 其他日期的儒略日与之想减，就是两个日期相差的天数
 const int Date::kJulianDayOf1970_01_01 = detail::getJulianDayNumber(1970, 1, 1);
 }
 
@@ -60,6 +66,7 @@ Date::Date(const struct tm& t)
 {
 }
 
+//将Date格式化为2015-01-28
 string Date::toIsoString() const
 {
   char buf[32];
@@ -68,6 +75,7 @@ string Date::toIsoString() const
   return buf;
 }
 
+// 将本日期转化为一个年月日对象
 Date::YearMonthDay Date::yearMonthDay() const
 {
   return getYearMonthDay(julianDayNumber_);
