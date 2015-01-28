@@ -8,7 +8,7 @@
 #define __STDC_FORMAT_MACROS
 #endif
 
-#include <inttypes.h>
+#include <inttypes.h> // int64_t
 
 #include <boost/static_assert.hpp>
 
@@ -28,6 +28,7 @@ string Timestamp::toString() const
   char buf[32] = {0};
   int64_t seconds = microSecondsSinceEpoch_ / kMicroSecondsPerSecond;
   int64_t microseconds = microSecondsSinceEpoch_ % kMicroSecondsPerSecond;
+  // int64_t的格式化输出要注意跨平台 int64_t在32bit中是lld，在64bit中是ld
   snprintf(buf, sizeof(buf)-1, "%" PRId64 ".%06" PRId64 "", seconds, microseconds);
   return buf;
 }
@@ -61,6 +62,7 @@ string Timestamp::toFormattedString(bool showMicroseconds) const
 Timestamp Timestamp::now()
 {
   struct timeval tv;
+  // gettimeofday可以获取微秒的精度
   gettimeofday(&tv, NULL);
   int64_t seconds = tv.tv_sec;
   return Timestamp(seconds * kMicroSecondsPerSecond + tv.tv_usec);
