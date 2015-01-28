@@ -12,6 +12,29 @@
 namespace muduo
 {
 
+// 这个类相对于C++标准库的std::exception主要是提供了打印栈痕迹的功能
+// 对于这个类，我们可以这样使用：
+// try
+// {
+//     //
+// }
+// catch (const Exception& ex)
+// {
+//     fprintf(stderr, "reason: %s\n", ex.what());
+//     fprintf(stderr, "stack trace: %s\n", ex.stackTrace());
+//     abort();
+// }
+// catch (const std::exception& ex)
+// {
+//     fprintf(stderr, "reason: %s\n", ex.what());
+//     abort();
+// }
+// catch (...)
+// {
+//     fprintf(stderr, "unknown exception caught \n");
+// throw; // rethrow
+// }
+
 class Exception : public std::exception
 {
  public:
