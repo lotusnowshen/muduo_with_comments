@@ -16,6 +16,11 @@
 namespace muduo
 {
 
+// 这是一个有上界的阻塞队列，而且是一个更典型的生产者消费者问题。
+// 他需要一个Mutex来保证互斥，因为有上界，队列可能是满的，
+// 所以需要一个Condition去唤醒生产者，还需要一个Condition去唤醒等待的消费者，
+// 通知他们取走物品，所以一共需要两个Condition
+
 template<typename T>
 class BoundedBlockingQueue : boost::noncopyable
 {
@@ -79,9 +84,13 @@ class BoundedBlockingQueue : boost::noncopyable
   }
 
  private:
+  // 这里注意定义的顺序
   mutable MutexLock          mutex_;
+  // 通知消费者可以放入物品
   Condition                  notEmpty_;
+  // 通知生产者可以放入物品
   Condition                  notFull_;
+  // 采用了boost的循环队列
   boost::circular_buffer<T>  queue_;
 };
 
