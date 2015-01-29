@@ -37,6 +37,10 @@ class EventLoop;
 // 包括可读、可写、关闭和错误处理四个回调函数
 // fd一般是tcp连接，也可以是其他，例如timerfd，甚至是文件fd
 
+// Channel的生命周期并不属于持有它的EventLoop，也不属于Poller，
+// 而是属于它的上一层，一般是TcpConnection、Accepor、Connector等，
+// 以及自己定义的class（内部持有一个Channel，一般是作为成员变量）
+
 class Channel : boost::noncopyable
 {
  public:
