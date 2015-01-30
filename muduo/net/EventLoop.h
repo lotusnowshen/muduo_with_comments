@@ -36,6 +36,11 @@ class TimerQueue;
 /// Reactor, at most one per thread.
 ///
 /// This is an interface class, so don't expose too much details.
+
+// 这是Reactor模式的核心，每个Reactor线程内部调用一个EventLoop，
+// 内部不停的进行poll或者epoll_wait调用，然后根据fd的返回事件，
+// 调用fd对应Channel的相应回调函数
+
 class EventLoop : boost::noncopyable
 {
  public:
@@ -49,12 +54,16 @@ class EventLoop : boost::noncopyable
   ///
   /// Must be called in the same thread as creation of the object.
   ///
+  // 开始事件循环，调用该函数的Thread必须是该EventLoop所在的线程
+  // 或者说，loop函数绝对不能跨线程调用
   void loop();
 
   /// Quits loop.
   ///
   /// This is not 100% thread safe, if you call through a raw pointer,
   /// better to call through shared_ptr<EventLoop> for 100% safety.
+
+  // 这个函数可以跨线程调用
   void quit();
 
   ///
@@ -115,6 +124,8 @@ class EventLoop : boost::noncopyable
   bool hasChannel(Channel* channel);
 
   // pid_t threadId() const { return threadId_; }
+  // 断言并没有进行跨线程操作
+  // 这个函数可以用于一些不允许跨线程的操作，避免错误
   void assertInLoopThread()
   {
     if (!isInLoopThread())
@@ -122,6 +133,9 @@ class EventLoop : boost::noncopyable
       abortNotInLoopThread();
     }
   }
+
+  // EventLoop在构造时，会记录线程pid，所以对于该pid与当前线程id
+  // 就可以判断是否在跨线程操作
   bool isInLoopThread() const { return threadId_ == CurrentThread::tid(); }
   // bool callingPendingFunctors() const { return callingPendingFunctors_; }
   bool eventHandling() const { return eventHandling_; }
