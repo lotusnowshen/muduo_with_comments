@@ -25,6 +25,7 @@ Poller::~Poller()
 bool Poller::hasChannel(Channel* channel) const
 {
   assertInLoopThread();
+  // 去Map中查找Channel
   ChannelMap::const_iterator it = channels_.find(channel->fd());
   return it != channels_.end() && it->second == channel;
 }
