@@ -27,7 +27,7 @@ namespace
 
 typedef struct sockaddr SA;
 
-
+// 为fd设置O_NONBLOCK和FD_CLOEXEC标志位，分别表示非阻塞和exec时关闭
 #if VALGRIND || defined (NO_ACCEPT4)
 void setNonBlockAndCloseOnExec(int sockfd)
 {
@@ -43,12 +43,13 @@ void setNonBlockAndCloseOnExec(int sockfd)
   ret = ::fcntl(sockfd, F_SETFD, flags);
   // FIXME check
 
-  (void)ret;
+  (void)ret; // 消除编译时警告
 }
 #endif
 
 }
 
+// 下面四个函数提供SA和SAI的相互转换
 const struct sockaddr* sockets::sockaddr_cast(const struct sockaddr_in* addr)
 {
   return static_cast<const struct sockaddr*>(implicit_cast<const void*>(addr));
@@ -69,6 +70,7 @@ struct sockaddr_in* sockets::sockaddr_in_cast(struct sockaddr* addr)
   return static_cast<struct sockaddr_in*>(implicit_cast<void*>(addr));
 }
 
+// 创建一个监听非阻塞套接字
 int sockets::createNonblockingOrDie()
 {
 #if VALGRIND
@@ -78,8 +80,10 @@ int sockets::createNonblockingOrDie()
     LOG_SYSFATAL << "sockets::createNonblockingOrDie";
   }
 
+  // 设置为非阻塞
   setNonBlockAndCloseOnExec(sockfd);
 #else
+  // 直接在创建时指定非阻塞和exec关闭选项
   int sockfd = ::socket(AF_INET, SOCK_STREAM | SOCK_NONBLOCK | SOCK_CLOEXEC, IPPROTO_TCP);
   if (sockfd < 0)
   {
@@ -89,6 +93,7 @@ int sockets::createNonblockingOrDie()
   return sockfd;
 }
 
+// 绑定网卡和端口
 void sockets::bindOrDie(int sockfd, const struct sockaddr_in& addr)
 {
   int ret = ::bind(sockfd, sockaddr_cast(&addr), static_cast<socklen_t>(sizeof addr));
@@ -98,6 +103,7 @@ void sockets::bindOrDie(int sockfd, const struct sockaddr_in& addr)
   }
 }
 
+// 监听端口
 void sockets::listenOrDie(int sockfd)
 {
   int ret = ::listen(sockfd, SOMAXCONN);
@@ -107,6 +113,7 @@ void sockets::listenOrDie(int sockfd)
   }
 }
 
+// 接受一个TCP连接
 int sockets::accept(int sockfd, struct sockaddr_in* addr)
 {
   socklen_t addrlen = static_cast<socklen_t>(sizeof *addr);
@@ -114,6 +121,7 @@ int sockets::accept(int sockfd, struct sockaddr_in* addr)
   int connfd = ::accept(sockfd, sockaddr_cast(addr), &addrlen);
   setNonBlockAndCloseOnExec(connfd);
 #else
+  // 如果内核较新，可以直接使用accept4创建一个非阻塞套接字
   int connfd = ::accept4(sockfd, sockaddr_cast(addr),
                          &addrlen, SOCK_NONBLOCK | SOCK_CLOEXEC);
 #endif
@@ -151,6 +159,7 @@ int sockets::accept(int sockfd, struct sockaddr_in* addr)
   return connfd;
 }
 
+// connect到服务器
 int sockets::connect(int sockfd, const struct sockaddr_in& addr)
 {
   return ::connect(sockfd, sockaddr_cast(&addr), static_cast<socklen_t>(sizeof addr));
@@ -171,6 +180,7 @@ ssize_t sockets::write(int sockfd, const void *buf, size_t count)
   return ::write(sockfd, buf, count);
 }
 
+// 关闭套接字
 void sockets::close(int sockfd)
 {
   if (::close(sockfd) < 0)
@@ -179,6 +189,7 @@ void sockets::close(int sockfd)
   }
 }
 
+// 相对于close，仅仅关闭写端
 void sockets::shutdownWrite(int sockfd)
 {
   if (::shutdown(sockfd, SHUT_WR) < 0)
@@ -216,6 +227,7 @@ void sockets::fromIpPort(const char* ip, uint16_t port,
   }
 }
 
+// 获取套接字错误
 int sockets::getSocketError(int sockfd)
 {
   int optval;
@@ -231,6 +243,7 @@ int sockets::getSocketError(int sockfd)
   }
 }
 
+// 获取TCP连接中本地的addr
 struct sockaddr_in sockets::getLocalAddr(int sockfd)
 {
   struct sockaddr_in localaddr;
@@ -243,6 +256,7 @@ struct sockaddr_in sockets::getLocalAddr(int sockfd)
   return localaddr;
 }
 
+// 获取tcp连接中对方的addr
 struct sockaddr_in sockets::getPeerAddr(int sockfd)
 {
   struct sockaddr_in peeraddr;
@@ -255,6 +269,7 @@ struct sockaddr_in sockets::getPeerAddr(int sockfd)
   return peeraddr;
 }
 
+// 判断是否是TCP自连接，判断的依据就是tcp双方ip相同、端口也相同
 bool sockets::isSelfConnect(int sockfd)
 {
   struct sockaddr_in localaddr = getLocalAddr(sockfd);

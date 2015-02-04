@@ -20,6 +20,8 @@ namespace net
 namespace sockets
 {
 
+// 这个namepace对大量的socket底层模板做了封装
+
 ///
 /// Creates a non-blocking socket file descriptor,
 /// abort if any error.

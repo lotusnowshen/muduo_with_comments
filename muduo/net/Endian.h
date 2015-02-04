@@ -28,31 +28,39 @@ namespace sockets
 #endif
 #pragma GCC diagnostic ignored "-Wconversion"
 #pragma GCC diagnostic ignored "-Wold-style-cast"
+
+
+// 64位变量的主机序转化为网络序
 inline uint64_t hostToNetwork64(uint64_t host64)
 {
   return htobe64(host64);
 }
 
+// 32位的主机序转化为网络序
 inline uint32_t hostToNetwork32(uint32_t host32)
 {
   return htobe32(host32);
 }
 
+// 16位的主机位转化为网络字节序
 inline uint16_t hostToNetwork16(uint16_t host16)
 {
   return htobe16(host16);
 }
 
+// 64位的网络字节序转化为主机序
 inline uint64_t networkToHost64(uint64_t net64)
 {
   return be64toh(net64);
 }
 
+// 32位的网络字节序转化为主机序
 inline uint32_t networkToHost32(uint32_t net32)
 {
   return be32toh(net32);
 }
 
+// 16位的网络字节序转化为主机序
 inline uint16_t networkToHost16(uint16_t net16)
 {
   return be16toh(net16);
