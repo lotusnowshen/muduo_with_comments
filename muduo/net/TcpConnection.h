@@ -126,7 +126,7 @@ class TcpConnection : boost::noncopyable,
   void handleError(); // 处理错误事件
   // void sendInLoop(string&& message);
   // 因为muduo中的IO不能跨线程，所以发送msg必须在EventLoop中，所以这里的sendInLoop底层
-  // 有判断，如果跨线程，则将其放入队列
+  // 有判断，如果跨线程，则将其放入队列，这几个函数供send调用
   void sendInLoop(const StringPiece& message);
   void sendInLoop(const void* message, size_t len);
   void shutdownInLoop();
@@ -146,7 +146,7 @@ class TcpConnection : boost::noncopyable,
   MessageCallback messageCallback_; // 收到消息时的回调函数 
   WriteCompleteCallback writeCompleteCallback_; // 消息写入对方缓冲区时的回调函数
   HighWaterMarkCallback highWaterMarkCallback_; // 高水位回调函数
-  CloseCallback closeCallback_;
+  CloseCallback closeCallback_; // 强行关闭TCP连接的回调函数
   size_t highWaterMark_;    // 高水位标记
   Buffer inputBuffer_;  // TCP连接的输入缓冲区，从连接中读取输入然后存入
   Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer. TCP的输出缓冲区，要发送的数据保存在这里
