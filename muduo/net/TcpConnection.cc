@@ -53,6 +53,7 @@ TcpConnection::TcpConnection(EventLoop* loop,
     peerAddr_(peerAddr),
     highWaterMark_(64*1024*1024) // 高水位默认是64K
 {
+  // 将回调函数注册入TCP对应的Channel中，然后由EventLoop去执行
   channel_->setReadCallback(
       boost::bind(&TcpConnection::handleRead, this, _1));
   channel_->setWriteCallback(
@@ -313,14 +314,16 @@ void TcpConnection::handleRead(Timestamp receiveTime)
 {
   loop_->assertInLoopThread();
   int savedErrno = 0;
+  // 从fd中读取数据到输入缓冲区中，返回成功读取的字节数
   ssize_t n = inputBuffer_.readFd(channel_->fd(), &savedErrno);
   if (n > 0)
   {
+    // 执行消息回调函数
     messageCallback_(shared_from_this(), &inputBuffer_, receiveTime);
   }
   else if (n == 0)
   {
-    handleClose();
+    handleClose(); // 连接关闭，执行关闭回调函数
   }
   else
   {
@@ -333,24 +336,25 @@ void TcpConnection::handleRead(Timestamp receiveTime)
 void TcpConnection::handleWrite()
 {
   loop_->assertInLoopThread();
-  if (channel_->isWriting())
+  if (channel_->isWriting()) //如果Channel正在监听write事件
   {
     ssize_t n = sockets::write(channel_->fd(),
                                outputBuffer_.peek(),
                                outputBuffer_.readableBytes());
     if (n > 0)
     {
-      outputBuffer_.retrieve(n);
-      if (outputBuffer_.readableBytes() == 0)
+      outputBuffer_.retrieve(n); // 从输出缓冲区中将已经发送的数据移除
+      if (outputBuffer_.readableBytes() == 0) // 所有数据已经发送完毕
       {
-        channel_->disableWriting();
+        channel_->disableWriting(); // 停止监听fd的写事件，因为非阻塞需要监听写事件，所以需要关注是否还有字节可写
         if (writeCompleteCallback_)
         {
+          // 数据全部发送完毕，需要在loop中执行这个函数，这个函数可以控制发送的速度，使其不超过接收的速度
           loop_->queueInLoop(boost::bind(writeCompleteCallback_, shared_from_this()));
         }
-        if (state_ == kDisconnecting)
+        if (state_ == kDisconnecting) // kDisconnecting表示TCP出于半关闭
         {
-          shutdownInLoop();
+          shutdownInLoop(); // 数据全部发送完毕，这里需要彻底关闭连接
         }
       }
     }
