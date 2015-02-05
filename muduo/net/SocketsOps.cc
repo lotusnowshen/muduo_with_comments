@@ -270,6 +270,7 @@ struct sockaddr_in sockets::getPeerAddr(int sockfd)
 }
 
 // 判断是否是TCP自连接，判断的依据就是tcp双方ip相同、端口也相同
+// TCP自连接可以参考http://xiaorui.cc/2015/01/02/%E5%A4%A7%E5%B9%B6%E5%8F%91%E4%B8%8Bsocket%E9%80%9A%E4%BF%A1%E8%BF%9E%E6%8E%A5%E6%97%B6%E4%BC%9A%E5%AF%BC%E8%87%B4tcp%E8%87%AA%E8%BF%9E%E6%8E%A5/
 bool sockets::isSelfConnect(int sockfd)
 {
   struct sockaddr_in localaddr = getLocalAddr(sockfd);

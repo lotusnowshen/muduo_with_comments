@@ -73,27 +73,34 @@ class TcpConnection : boost::noncopyable,
   void forceCloseWithDelay(double seconds);
   void setTcpNoDelay(bool on);
 
+  // 设置TCP上下文 boost::any http://www.boost.org/doc/libs/1_57_0/doc/html/any.html
   void setContext(const boost::any& context)
   { context_ = context; }
 
+  // 获取TCP上下文
   const boost::any& getContext() const
   { return context_; }
 
   boost::any* getMutableContext()
   { return &context_; }
 
+  // 设置连接建立和关闭时的回调函数
   void setConnectionCallback(const ConnectionCallback& cb)
   { connectionCallback_ = cb; }
 
+  // 设置收到消息时的回调函数
   void setMessageCallback(const MessageCallback& cb)
   { messageCallback_ = cb; }
 
+  // 设置当成功将所有数据写入对方内核缓冲区时的回调函数
   void setWriteCompleteCallback(const WriteCompleteCallback& cb)
   { writeCompleteCallback_ = cb; }
 
+  // 设置高水位回调函数和高水位值，当缓冲区的size达到highWaterMark时触发此请求
   void setHighWaterMarkCallback(const HighWaterMarkCallback& cb, size_t highWaterMark)
   { highWaterMarkCallback_ = cb; highWaterMark_ = highWaterMark; }
 
+  // 返回输入缓冲区和输出缓冲区的指针
   /// Advanced interface
   Buffer* inputBuffer()
   { return &inputBuffer_; }
@@ -102,6 +109,7 @@ class TcpConnection : boost::noncopyable,
   { return &outputBuffer_; }
 
   /// Internal use only.
+  // 设置TCP连接关闭的回调函数，仅仅在内部使用
   void setCloseCallback(const CloseCallback& cb)
   { closeCallback_ = cb; }
 
@@ -112,40 +120,43 @@ class TcpConnection : boost::noncopyable,
 
  private:
   enum StateE { kDisconnected, kConnecting, kConnected, kDisconnecting };
-  void handleRead(Timestamp receiveTime);
-  void handleWrite();
-  void handleClose();
-  void handleError();
+  void handleRead(Timestamp receiveTime); // 处理read事件，receiveTime指的是poll调用返回的事件 
+  void handleWrite(); // 处理写事件
+  void handleClose(); // 处理连接关闭事件
+  void handleError(); // 处理错误事件
   // void sendInLoop(string&& message);
+  // 因为muduo中的IO不能跨线程，所以发送msg必须在EventLoop中，所以这里的sendInLoop底层
+  // 有判断，如果跨线程，则将其放入队列
   void sendInLoop(const StringPiece& message);
   void sendInLoop(const void* message, size_t len);
   void shutdownInLoop();
   // void shutdownAndForceCloseInLoop(double seconds);
   void forceCloseInLoop();
-  void setState(StateE s) { state_ = s; }
+  void setState(StateE s) { state_ = s; } // 设置TCP连接的状态
 
-  EventLoop* loop_;
-  const string name_;
-  StateE state_;  // FIXME: use atomic variable
+  EventLoop* loop_;   // 处理该TCP连接的EventLoop，该EventLoop内部的epoll监听TCP连接对应的fd
+  const string name_; // 连接的名字
+  StateE state_;  // FIXME: use atomic variable // 本条TCP连接的状态
   // we don't expose those classes to client.
-  boost::scoped_ptr<Socket> socket_;
-  boost::scoped_ptr<Channel> channel_;
-  const InetAddress localAddr_;
-  const InetAddress peerAddr_;
-  ConnectionCallback connectionCallback_;
-  MessageCallback messageCallback_;
-  WriteCompleteCallback writeCompleteCallback_;
-  HighWaterMarkCallback highWaterMarkCallback_;
+  boost::scoped_ptr<Socket> socket_; // TCP连接的fd所在的socket对象 fd的关闭由它决定
+  boost::scoped_ptr<Channel> channel_; // TCP连接fd对应的Channel，将其放入EventLoop
+  const InetAddress localAddr_; // TCP连接中本地的ip地址和端口号
+  const InetAddress peerAddr_; // TCP连接中对方的ip地址和端口号
+  ConnectionCallback connectionCallback_;  // 连接建立和关闭时的回调函数
+  MessageCallback messageCallback_; // 收到消息时的回调函数 
+  WriteCompleteCallback writeCompleteCallback_; // 消息写入对方缓冲区时的回调函数
+  HighWaterMarkCallback highWaterMarkCallback_; // 高水位回调函数
   CloseCallback closeCallback_;
-  size_t highWaterMark_;
-  Buffer inputBuffer_;
-  Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer.
-  boost::any context_;
+  size_t highWaterMark_;    // 高水位标记
+  Buffer inputBuffer_;  // TCP连接的输入缓冲区，从连接中读取输入然后存入
+  Buffer outputBuffer_; // FIXME: use list<Buffer> as output buffer. TCP的输出缓冲区，要发送的数据保存在这里
+  boost::any context_;  // TCP连接的上下文，一般用于处理多次消息相互存在关联的情形，例如文件发送
   // FIXME: creationTime_, lastReceiveTime_
   //        bytesReceived_, bytesSent_
 };
 
-typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr;
+typedef boost::shared_ptr<TcpConnection> TcpConnectionPtr; // 使用引用计数型智能指针管理TCP连接对象的生存周期
+// 当TCP连接关闭时，必须将其他拥有该TCP智能指针的对象销毁，最后该TCP才能正确关闭
 
 }
 }

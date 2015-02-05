@@ -22,6 +22,7 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 默认的当连接建立时的回调函数
 void muduo::net::defaultConnectionCallback(const TcpConnectionPtr& conn)
 {
   LOG_TRACE << conn->localAddress().toIpPort() << " -> "
