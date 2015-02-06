@@ -42,7 +42,7 @@ namespace net
 class Buffer : public muduo::copyable
 {
  public:
-  static const size_t kCheapPrepend = 8;
+  static const size_t kCheapPrepend = 8; // buffer前面预留的字节数
   static const size_t kInitialSize = 1024;
 
   explicit Buffer(size_t initialSize = kInitialSize)
@@ -65,9 +65,11 @@ class Buffer : public muduo::copyable
     std::swap(writerIndex_, rhs.writerIndex_);
   }
 
+  // writerIndex_ - readerIndex_代表还能从buffer中读出多少字节
   size_t readableBytes() const
   { return writerIndex_ - readerIndex_; }
 
+  // size - writerIndex_代表buffer还能写入多少字节
   size_t writableBytes() const
   { return buffer_.size() - writerIndex_; }
 
@@ -77,6 +79,7 @@ class Buffer : public muduo::copyable
   const char* peek() const
   { return begin() + readerIndex_; }
 
+  // 在buffer中寻找 \r\n
   const char* findCRLF() const
   {
     // FIXME: replace with memmem()?
@@ -409,11 +412,11 @@ class Buffer : public muduo::copyable
   }
 
  private:
-  std::vector<char> buffer_;
-  size_t readerIndex_;
-  size_t writerIndex_;
+  std::vector<char> buffer_; // buffer底层采用vector实现
+  size_t readerIndex_; // 可读取字节的索引
+  size_t writerIndex_; // 可输入位置的索引
 
-  static const char kCRLF[];
+  static const char kCRLF[]; // 代表 '\r\n'
 };
 
 }

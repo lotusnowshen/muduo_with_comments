@@ -206,7 +206,7 @@ void TcpConnection::sendInLoop(const void* data, size_t len)
 void TcpConnection::shutdown()
 {
   // FIXME: use compare and swap
-  if (state_ == kConnected)
+  if (state_ == kConnected) // 执行shutdown必须是在连接正常的情况下
   {
     setState(kDisconnecting);
     // FIXME: shared_from_this()?
@@ -216,11 +216,11 @@ void TcpConnection::shutdown()
 
 void TcpConnection::shutdownInLoop()
 {
-  loop_->assertInLoopThread();
+  loop_->assertInLoopThread(); // 不能跨线程
   if (!channel_->isWriting())
   {
     // we are not writing
-    socket_->shutdownWrite();
+    socket_->shutdownWrite(); // 关闭写端
   }
 }
 
@@ -248,6 +248,7 @@ void TcpConnection::shutdownInLoop()
 //                        &TcpConnection::forceCloseInLoop));
 // }
 
+// 强行关闭，在loop中执行真正的关闭动作
 void TcpConnection::forceClose()
 {
   // FIXME: use compare and swap
@@ -270,6 +271,7 @@ void TcpConnection::forceCloseWithDelay(double seconds)
   }
 }
 
+// 真正关闭的逻辑
 void TcpConnection::forceCloseInLoop()
 {
   loop_->assertInLoopThread();
@@ -286,28 +288,32 @@ void TcpConnection::setTcpNoDelay(bool on)
   socket_->setTcpNoDelay(on);
 }
 
+// 连接建立
 void TcpConnection::connectEstablished()
 {
   loop_->assertInLoopThread();
-  assert(state_ == kConnecting);
-  setState(kConnected);
+  assert(state_ == kConnecting); // 此前必须是正在建立连接
+  setState(kConnected); // 连接正式建立
   channel_->tie(shared_from_this());
-  channel_->enableReading();
+  channel_->enableReading(); // 开始监听read事件
 
-  connectionCallback_(shared_from_this());
+  // 执行用户建立连接时的逻辑
+  connectionCallback_(shared_from_this()); 
 }
 
+// 连接关闭
 void TcpConnection::connectDestroyed()
 {
   loop_->assertInLoopThread();
   if (state_ == kConnected)
   {
     setState(kDisconnected);
-    channel_->disableAll();
+    channel_->disableAll(); // 停止监听所有事件
 
+    // 执行用户的关闭逻辑
     connectionCallback_(shared_from_this());
   }
-  channel_->remove();
+  channel_->remove(); // 从epoll中移除fd
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -378,17 +384,19 @@ void TcpConnection::handleClose()
 {
   loop_->assertInLoopThread();
   LOG_TRACE << "fd = " << channel_->fd() << " state = " << state_;
+  // 此时连接必须出于正常和半关闭状态
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
   setState(kDisconnected);
-  channel_->disableAll();
+  channel_->disableAll(); // 关闭所有的Channel
 
   TcpConnectionPtr guardThis(shared_from_this());
-  connectionCallback_(guardThis);
+  connectionCallback_(guardThis); // 执行用户的关闭连接逻辑
   // must be the last line
-  closeCallback_(guardThis);
+  closeCallback_(guardThis); // 执行关闭的回调函数
 }
 
+// 处理连接中的错误
 void TcpConnection::handleError()
 {
   int err = sockets::getSocketError(channel_->fd());
