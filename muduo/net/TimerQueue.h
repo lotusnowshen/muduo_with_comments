@@ -59,8 +59,8 @@ class TimerQueue : boost::noncopyable
  private:
 
   // FIXME: use unique_ptr<Timer> instead of raw pointers.
-  typedef std::pair<Timestamp, Timer*> Entry;
-  typedef std::set<Entry> TimerList;
+  typedef std::pair<Timestamp, Timer*> Entry; // 对应一个定时任务
+  typedef std::set<Entry> TimerList; // 定时任务的集合，采用set自动排序
   typedef std::pair<Timer*, int64_t> ActiveTimer;
   typedef std::set<ActiveTimer> ActiveTimerSet;
 
@@ -74,11 +74,11 @@ class TimerQueue : boost::noncopyable
 
   bool insert(Timer* timer);
 
-  EventLoop* loop_;
-  const int timerfd_;
-  Channel timerfdChannel_;
+  EventLoop* loop_; // 持有这个TimerQueue的EventLoop
+  const int timerfd_; // 内部的timerfd
+  Channel timerfdChannel_; // timerfd对应的Channel
   // Timer list sorted by expiration
-  TimerList timers_;
+  TimerList timers_; // 所有的定时任务
 
   // for cancel()
   ActiveTimerSet activeTimers_;
