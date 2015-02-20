@@ -25,17 +25,17 @@ using namespace muduo::net;
 
 Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reuseport)
   : loop_(loop),
-    acceptSocket_(sockets::createNonblockingOrDie()),
-    acceptChannel_(loop, acceptSocket_.fd()),
+    acceptSocket_(sockets::createNonblockingOrDie()), // 创建listenfd
+    acceptChannel_(loop, acceptSocket_.fd()), // 创建listenfd对应的Channel
     listenning_(false),
-    idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC))
+    idleFd_(::open("/dev/null", O_RDONLY | O_CLOEXEC)) // 打开一个空的fd，用于占位
 {
   assert(idleFd_ >= 0);
-  acceptSocket_.setReuseAddr(true);
-  acceptSocket_.setReusePort(reuseport);
-  acceptSocket_.bindAddress(listenAddr);
+  acceptSocket_.setReuseAddr(true); // 复用addr
+  acceptSocket_.setReusePort(reuseport); // 复用port
+  acceptSocket_.bindAddress(listenAddr); // 绑定ip和port
   acceptChannel_.setReadCallback(
-      boost::bind(&Acceptor::handleRead, this));
+      boost::bind(&Acceptor::handleRead, this)); //设置Channel的read回调函数
 }
 
 Acceptor::~Acceptor()
@@ -45,14 +45,16 @@ Acceptor::~Acceptor()
   ::close(idleFd_);
 }
 
+// 监听fd
 void Acceptor::listen()
 {
   loop_->assertInLoopThread();
   listenning_ = true;
   acceptSocket_.listen();
-  acceptChannel_.enableReading();
+  acceptChannel_.enableReading(); // 开始在epoll中监听read事件
 }
 
+// 当epoll监听到listenfd时，开始执行此函数
 void Acceptor::handleRead()
 {
   loop_->assertInLoopThread();
@@ -65,6 +67,7 @@ void Acceptor::handleRead()
     // LOG_TRACE << "Accepts of " << hostport;
     if (newConnectionCallback_)
     {
+      // 执行创建连接时的操作，猜测是保存fd，创建TcpConnection之类
       newConnectionCallback_(connfd, peerAddr);
     }
     else
@@ -78,12 +81,12 @@ void Acceptor::handleRead()
     // Read the section named "The special problem of
     // accept()ing when you can't" in libev's doc.
     // By Marc Lehmann, author of livev.
-    if (errno == EMFILE)
+    if (errno == EMFILE) // fd的数目达到上限
     {
+      ::close(idleFd_); // 关闭占位的fd
+      idleFd_ = ::accept(acceptSocket_.fd(), NULL, NULL); //接收此链接，然后马上关闭
       ::close(idleFd_);
-      idleFd_ = ::accept(acceptSocket_.fd(), NULL, NULL);
-      ::close(idleFd_);
-      idleFd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC);
+      idleFd_ = ::open("/dev/null", O_RDONLY | O_CLOEXEC); // 重新打开此fd
     }
   }
 }
