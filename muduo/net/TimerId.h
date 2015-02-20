@@ -23,6 +23,9 @@ class Timer;
 ///
 /// An opaque identifier, for canceling Timer.
 ///
+
+// TimerId是一个定时器标示，主要用于取消任务
+
 class TimerId : public muduo::copyable
 {
  public:
@@ -32,6 +35,8 @@ class TimerId : public muduo::copyable
   {
   }
 
+  // timer 定时器的指针
+  // seq 该定时任务的序列号
   TimerId(Timer* timer, int64_t seq)
     : timer_(timer),
       sequence_(seq)

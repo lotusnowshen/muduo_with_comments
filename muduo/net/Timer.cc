@@ -17,10 +17,12 @@ void Timer::restart(Timestamp now)
 {
   if (repeat_)
   {
+  	// 如果需要重复，那就将时间设置为下次过期的时间
     expiration_ = addTime(now, interval_);
   }
   else
   {
+  	// 如果不需要重复，那就将过期时间设置为一个不可用的value
     expiration_ = Timestamp::invalid();
   }
 }
