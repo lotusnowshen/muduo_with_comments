@@ -113,6 +113,7 @@ class TcpConnection : boost::noncopyable,
   void setCloseCallback(const CloseCallback& cb)
   { closeCallback_ = cb; }
 
+  // 以下两个函数，提供给TcpServer使用
   // called when TcpServer accepts a new connection
   void connectEstablished();   // should be called only once
   // called when TcpServer has removed me from its map

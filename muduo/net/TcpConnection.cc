@@ -288,7 +288,7 @@ void TcpConnection::setTcpNoDelay(bool on)
   socket_->setTcpNoDelay(on);
 }
 
-// 连接建立
+// 连接建立，这个函数提供给TcpServer使用
 void TcpConnection::connectEstablished()
 {
   loop_->assertInLoopThread();
@@ -301,7 +301,7 @@ void TcpConnection::connectEstablished()
   connectionCallback_(shared_from_this()); 
 }
 
-// 连接关闭
+// 连接关闭，提供给TcpServer使用
 void TcpConnection::connectDestroyed()
 {
   loop_->assertInLoopThread();

@@ -139,6 +139,9 @@ void PollPoller::updateChannel(Channel* channel)
 }
 
 // 移除某Channel
+// 这里的步骤是
+// 1. 从poll数组中删除
+// 2. 从map映射中删除
 void PollPoller::removeChannel(Channel* channel)
 {
   Poller::assertInLoopThread();

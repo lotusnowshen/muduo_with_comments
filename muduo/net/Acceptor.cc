@@ -23,6 +23,9 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// Acceptor这类对象，内部持有一个Channel，和TcpConnection相同，必须在构造函数中设置各种回调函数
+// 然后在其他动作中开始监听，向epoll注册fd
+
 Acceptor::Acceptor(EventLoop* loop, const InetAddress& listenAddr, bool reuseport)
   : loop_(loop),
     acceptSocket_(sockets::createNonblockingOrDie()), // 创建listenfd

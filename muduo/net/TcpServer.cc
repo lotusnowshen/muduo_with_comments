@@ -34,7 +34,7 @@ TcpServer::TcpServer(EventLoop* loop,
     messageCallback_(defaultMessageCallback),
     nextConnId_(1)
 {
-  // 
+  // 将新建tcp连接的操作注册到acceptor中
   acceptor_->setNewConnectionCallback(
       boost::bind(&TcpServer::newConnection, this, _1, _2));
 }
@@ -62,17 +62,33 @@ void TcpServer::setThreadNum(int numThreads)
   threadPool_->setThreadNum(numThreads);
 }
 
+// tcpServer的启动流程：
+// 1. 启动线程池的Thread
+// 2. 开始listen
+// 3. 开启acceptor对应的read事件，此时开始在epoll中监听listenfd的read事件
+
 void TcpServer::start()
 {
   if (started_.getAndSet(1) == 0)
   {
+    // 启动线程
     threadPool_->start(threadInitCallback_);
 
     assert(!acceptor_->listenning());
+    // 开始listen
     loop_->runInLoop(
         boost::bind(&Acceptor::listen, get_pointer(acceptor_)));
   }
 }
+
+// muduo接受新连接的流程：
+// 1. 底层accept一个新的fd
+// 2. 从线程池中选取一个loop线程
+// 3. 生成新的TcpConnection
+// 4. 设置好各种回调函数
+// 5. 在该loop执行tcp连接建立时的回调操作
+//   包括tcp建立时的用户回调操作
+//   开始监听此客户fd的read事件等
 
 // 这是个回调函数，用于Acceptor接受新连接后的处理
 // sockfd  新建tcp连接的fd
@@ -80,7 +96,9 @@ void TcpServer::start()
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();
+  // 从线程池中选取一个loop
   EventLoop* ioLoop = threadPool_->getNextLoop();
+  // 生成tcp连接的名称
   char buf[32];
   snprintf(buf, sizeof buf, ":%s#%d", hostport_.c_str(), nextConnId_);
   ++nextConnId_;
@@ -92,6 +110,7 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   InetAddress localAddr(sockets::getLocalAddr(sockfd));
   // FIXME poll with zero timeout to double confirm the new connection
   // FIXME use make_shared if necessary
+  // 新建tcp连接
   TcpConnectionPtr conn(new TcpConnection(ioLoop,
                                           connName,
                                           sockfd,
@@ -101,16 +120,21 @@ void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
   conn->setConnectionCallback(connectionCallback_);
   conn->setMessageCallback(messageCallback_);
   conn->setWriteCompleteCallback(writeCompleteCallback_);
+  // TCP关闭时的回调函数
   conn->setCloseCallback(
       boost::bind(&TcpServer::removeConnection, this, _1)); // FIXME: unsafe
+  // 在loop线程中执行建立tcp连接的流程，主要是设置tcp状态，以及执行tcp建立的回调函数
   ioLoop->runInLoop(boost::bind(&TcpConnection::connectEstablished, conn));
 }
 
+// 关闭连接时执行的操作
 void TcpServer::removeConnection(const TcpConnectionPtr& conn)
 {
   // FIXME: unsafe
   loop_->runInLoop(boost::bind(&TcpServer::removeConnectionInLoop, this, conn));
 }
+
+// muduo移除tcp连接的流程： 。。。
 
 void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
 {
@@ -120,7 +144,9 @@ void TcpServer::removeConnectionInLoop(const TcpConnectionPtr& conn)
   size_t n = connections_.erase(conn->name());
   (void)n;
   assert(n == 1);
+  // 取出该tcp连接所在的loop
   EventLoop* ioLoop = conn->getLoop();
+  // 执行该conn关闭时的回调函数
   ioLoop->queueInLoop(
       boost::bind(&TcpConnection::connectDestroyed, conn));
 }
