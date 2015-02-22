@@ -313,7 +313,7 @@ void TcpConnection::connectDestroyed()
     // 执行用户的关闭逻辑
     connectionCallback_(shared_from_this());
   }
-  channel_->remove(); // 从epoll中移除fd
+  channel_->remove(); // 从epoll中移除fd，该conn在loop中彻底移除
 }
 
 void TcpConnection::handleRead(Timestamp receiveTime)
@@ -380,6 +380,7 @@ void TcpConnection::handleWrite()
   }
 }
 
+// 当read返回0，或者epoll遇到hup时，调用此函数，处理close事件
 void TcpConnection::handleClose()
 {
   loop_->assertInLoopThread();
@@ -388,12 +389,13 @@ void TcpConnection::handleClose()
   assert(state_ == kConnected || state_ == kDisconnecting);
   // we don't close fd, leave it to dtor, so we can find leaks easily.
   setState(kDisconnected);
-  channel_->disableAll(); // 关闭所有的Channel
+  channel_->disableAll(); // Channel停止监听所有的事件
 
   TcpConnectionPtr guardThis(shared_from_this());
   connectionCallback_(guardThis); // 执行用户的关闭连接逻辑
   // must be the last line
-  closeCallback_(guardThis); // 执行关闭的回调函数
+  closeCallback_(guardThis); // 执行上层的Tcpserver注册的函数
+  // 具体些，就是执行removeConnection，然后在里面执行connectDestroyed
 }
 
 // 处理连接中的错误

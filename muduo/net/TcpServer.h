@@ -116,6 +116,7 @@ class TcpServer : boost::noncopyable
   AtomicInt32 started_; // 标示TcpServer是否启动
   // always in loop thread
   int nextConnId_; // 序号，用于给tcp连接提供名称
+  // 这个数据结构可以看做维持TcpConnection的生命周期
   ConnectionMap connections_; // 从连接名字到conn的映射
 };
 
