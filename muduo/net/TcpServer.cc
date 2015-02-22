@@ -34,6 +34,7 @@ TcpServer::TcpServer(EventLoop* loop,
     messageCallback_(defaultMessageCallback),
     nextConnId_(1)
 {
+  // 
   acceptor_->setNewConnectionCallback(
       boost::bind(&TcpServer::newConnection, this, _1, _2));
 }
@@ -54,6 +55,7 @@ TcpServer::~TcpServer()
   }
 }
 
+// 设置线程数目，这一步就可以决定采用的是单线程reactor，还是多线程
 void TcpServer::setThreadNum(int numThreads)
 {
   assert(0 <= numThreads);
@@ -72,6 +74,9 @@ void TcpServer::start()
   }
 }
 
+// 这是个回调函数，用于Acceptor接受新连接后的处理
+// sockfd  新建tcp连接的fd
+// peerAddr tcp的客户端地址
 void TcpServer::newConnection(int sockfd, const InetAddress& peerAddr)
 {
   loop_->assertInLoopThread();

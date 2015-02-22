@@ -41,7 +41,7 @@ class PollPoller : public Poller
                           ChannelList* activeChannels) const;
 
   typedef std::vector<struct pollfd> PollFdList;
-  PollFdList pollfds_;
+  PollFdList pollfds_; // poll数组，用于存放底层需要监听的fd
 };
 
 }

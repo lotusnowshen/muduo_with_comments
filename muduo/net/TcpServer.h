@@ -100,18 +100,20 @@ class TcpServer : boost::noncopyable
   /// Not thread safe, but in loop
   void removeConnectionInLoop(const TcpConnectionPtr& conn);
 
+  // 提供从连接名称到conn的映射
   typedef std::map<string, TcpConnectionPtr> ConnectionMap;
 
-  EventLoop* loop_;  // the acceptor loop
-  const string hostport_;
-  const string name_;
+  EventLoop* loop_;  // the acceptor loop 负责接受tcp连接的EventLoop，如果threadNums为1，那么它是唯一的IO线程
+  const string hostport_; // 主机、端口号
+  const string name_; // 服务器名称
+  // 持有的listenfd对应的Channel，负责tcp的建立和接受新请求
   boost::scoped_ptr<Acceptor> acceptor_; // avoid revealing Acceptor
-  boost::shared_ptr<EventLoopThreadPool> threadPool_;
-  ConnectionCallback connectionCallback_;
-  MessageCallback messageCallback_;
-  WriteCompleteCallback writeCompleteCallback_;
-  ThreadInitCallback threadInitCallback_;
-  AtomicInt32 started_;
+  boost::shared_ptr<EventLoopThreadPool> threadPool_; // 线程池，每个线程运行一个EventLoop
+  ConnectionCallback connectionCallback_; // 连接建立和关闭时的callback
+  MessageCallback messageCallback_; // 消息到来时的callback
+  WriteCompleteCallback writeCompleteCallback_; // 消息写入对方缓冲区时的callback
+  ThreadInitCallback threadInitCallback_; // EventLoop线程初始化时的回调函数
+  AtomicInt32 started_; // 标示TcpServer是否启动
   // always in loop thread
   int nextConnId_;
   ConnectionMap connections_;
