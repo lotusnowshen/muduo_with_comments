@@ -25,6 +25,11 @@ namespace net
 class EventLoop;
 class InetAddress;
 
+// 这个类主要是封装了listenfd对应的Channel。
+// 它的任务就是创建listenfd，然后accept新的tcp连接是它最核心的职责
+// 所以这个类已经具备了一个tcp服务器大部分的能力
+// 但这个类只负责接受tcp连接，并不负责tcp连接的分配，这个是Acceptor的上层-TcpServer的任务
+
 ///
 /// Acceptor of incoming TCP connections.
 ///

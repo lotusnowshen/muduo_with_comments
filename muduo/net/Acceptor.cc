@@ -67,7 +67,8 @@ void Acceptor::handleRead()
     // LOG_TRACE << "Accepts of " << hostport;
     if (newConnectionCallback_)
     {
-      // 执行创建连接时的操作，猜测是保存fd，创建TcpConnection之类
+      // 执行创建连接时的操作，猜测是保存fd，创建TcpConnection之类，然后是将
+      // tcp连接分配给其他线程
       newConnectionCallback_(connfd, peerAddr);
     }
     else
@@ -77,6 +78,10 @@ void Acceptor::handleRead()
   }
   else
   {
+    // 这里处理fd达到上限有一个技巧，就是先占住一个空的fd，然后当fd满的时候，先关闭此占位fd，然后
+    // 迅速接受新的tcp连接，然后关闭它，然后再次打开此fd
+    // 这样的好处是能够及时通知客户端，服务器的fd已经满。
+    // 事实上，这里还可以提供给用户一个回调函数，提供fd满时的更具体信息
     LOG_SYSERR << "in Acceptor::handleRead";
     // Read the section named "The special problem of
     // accept()ing when you can't" in libev's doc.
