@@ -10,6 +10,9 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 这个示例中，一个loop撑起了多个server
+// 实际上是多个服务器共用一个epoll模型
+
 int main()
 {
   LOG_INFO << "pid = " << getpid();

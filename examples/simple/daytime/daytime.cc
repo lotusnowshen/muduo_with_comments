@@ -30,11 +30,13 @@ void DaytimeServer::onConnection(const TcpConnectionPtr& conn)
            << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
+    // 将当前时间，以字符串的方式发送回去，然后关闭连接
     conn->send(Timestamp::now().toFormattedString() + "\n");
     conn->shutdown();
   }
 }
 
+// 注意，如果客户端发送过快，在调用shutdown之前，这里很可能接收到消息
 void DaytimeServer::onMessage(const TcpConnectionPtr& conn,
                               Buffer* buf,
                               Timestamp time)

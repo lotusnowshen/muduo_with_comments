@@ -25,9 +25,9 @@ class ChargenServer
 
   muduo::net::TcpServer server_;
 
-  muduo::string message_;
-  int64_t transferred_;
-  muduo::Timestamp startTime_;
+  muduo::string message_; // 每次要发送的msg
+  int64_t transferred_;  // 发送的字节计数
+  muduo::Timestamp startTime_; // 每次的开始时间
 };
 
 #endif  // MUDUO_EXAMPLES_SIMPLE_CHARGEN_CHARGEN_H

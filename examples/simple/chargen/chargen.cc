@@ -14,7 +14,7 @@ ChargenServer::ChargenServer(EventLoop* loop,
                              bool print)
   : server_(loop, listenAddr, "ChargenServer"),
     transferred_(0),
-    startTime_(Timestamp::now())
+    startTime_(Timestamp::now()) // 记录开始时间
 {
   server_.setConnectionCallback(
       boost::bind(&ChargenServer::onConnection, this, _1));
@@ -24,9 +24,11 @@ ChargenServer::ChargenServer(EventLoop* loop,
       boost::bind(&ChargenServer::onWriteComplete, this, _1));
   if (print)
   {
+    // 注册定时器，每3s打印一次传输速率
     loop->runEvery(3.0, boost::bind(&ChargenServer::printThroughput, this));
   }
 
+  // 生成每次要发送的message
   string line;
   for (int i = 33; i < 127; ++i)
   {
@@ -68,16 +70,17 @@ void ChargenServer::onMessage(const TcpConnectionPtr& conn,
 
 void ChargenServer::onWriteComplete(const TcpConnectionPtr& conn)
 {
-  transferred_ += message_.size();
+  transferred_ += message_.size(); // 记录总共传输的字节数
   conn->send(message_);
 }
 
+// 打印传输速度
 void ChargenServer::printThroughput()
 {
-  Timestamp endTime = Timestamp::now();
-  double time = timeDifference(endTime, startTime_);
+  Timestamp endTime = Timestamp::now(); // 结束时间
+  double time = timeDifference(endTime, startTime_); // 求时间差
   printf("%4.3f MiB/s\n", static_cast<double>(transferred_)/time/1024/1024);
-  transferred_ = 0;
-  startTime_ = endTime;
+  transferred_ = 0; // 字节清空，重新开始计数
+  startTime_ = endTime; // 重新计时
 }
 

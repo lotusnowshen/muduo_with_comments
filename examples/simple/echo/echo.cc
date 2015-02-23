@@ -33,6 +33,7 @@ void EchoServer::onMessage(const muduo::net::TcpConnectionPtr& conn,
                            muduo::net::Buffer* buf,
                            muduo::Timestamp time)
 {
+  // 接收到所有的消息，然后回显
   muduo::string msg(buf->retrieveAllAsString());
   LOG_INFO << conn->name() << " echo " << msg.size() << " bytes, "
            << "data received at " << time.toString();

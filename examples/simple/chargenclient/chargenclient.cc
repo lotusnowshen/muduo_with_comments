@@ -45,7 +45,7 @@ class ChargenClient : boost::noncopyable
 
   void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp receiveTime)
   {
-    buf->retrieveAll();
+    buf->retrieveAll(); // 接收然后丢弃
   }
 
   EventLoop* loop_;

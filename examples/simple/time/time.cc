@@ -30,6 +30,7 @@ void TimeServer::onConnection(const muduo::net::TcpConnectionPtr& conn)
            << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
+    // 每次建立连接后，将当前时间戳以网络序的32位整数发送回去
     time_t now = ::time(NULL);
     int32_t be32 = sockets::hostToNetwork32(static_cast<int32_t>(now));
     conn->send(&be32, sizeof be32);

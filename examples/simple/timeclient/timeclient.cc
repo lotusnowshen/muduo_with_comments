@@ -54,6 +54,7 @@ class TimeClient : boost::noncopyable
   {
     if (buf->readableBytes() >= sizeof(int32_t))
     {
+      // 接收到32位整数，然后生成时间戳对象，并打印
       const void* data = buf->peek();
       int32_t be32 = *static_cast<const int32_t*>(data);
       buf->retrieve(sizeof(int32_t));
