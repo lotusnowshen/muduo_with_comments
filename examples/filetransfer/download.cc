@@ -9,6 +9,10 @@ using namespace muduo::net;
 
 const char* g_file = NULL;
 
+// 这是文件传输的第一个实例，它将文件一次性读取到内存中，然后
+// 一次性发送，特点是简单，缺点则是如果文件内容过大，占用太多内存
+
+// 读取一个文件的所有内容
 // FIXME: use FileUtil::readFile()
 string readFile(const char* filename)
 {
@@ -19,6 +23,7 @@ string readFile(const char* filename)
     // inefficient!!!
     const int kBufSize = 1024*1024;
     char iobuf[kBufSize];
+    // 设置缓冲区
     ::setbuffer(fp, iobuf, sizeof iobuf);
 
     char buf[kBufSize];
@@ -48,7 +53,7 @@ void onConnection(const TcpConnectionPtr& conn)
              << " to " << conn->peerAddress().toIpPort();
     conn->setHighWaterMarkCallback(onHighWaterMark, 64*1024);
     string fileContent = readFile(g_file);
-    conn->send(fileContent);
+    conn->send(fileContent); // 一次性发送所有的内容
     conn->shutdown();
     LOG_INFO << "FileServer - done";
   }
