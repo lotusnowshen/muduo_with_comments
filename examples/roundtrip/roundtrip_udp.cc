@@ -33,6 +33,7 @@ void serverReadCallback(int sockfd, muduo::Timestamp receiveTime)
   struct sockaddr peerAddr;
   bzero(&peerAddr, sizeof peerAddr);
   socklen_t addrLen = sizeof peerAddr;
+  // 接收报文
   ssize_t nr = ::recvfrom(sockfd, message, sizeof message, 0, &peerAddr, &addrLen);
 
   char addrStr[32];
@@ -46,6 +47,7 @@ void serverReadCallback(int sockfd, muduo::Timestamp receiveTime)
   else if (implicit_cast<size_t>(nr) == frameLen)
   {
     message[1] = receiveTime.microSecondsSinceEpoch();
+    // 发送当前时刻
     ssize_t nw = ::sendto(sockfd, message, sizeof message, 0, &peerAddr, addrLen);
     if (nw < 0)
     {

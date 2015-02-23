@@ -8,6 +8,8 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 此例可用于计算两台机器的时延，参考http://blog.csdn.net/solstice/article/details/6335082
+
 const size_t frameLen = 2*sizeof(int64_t);
 
 void serverConnectionCallback(const TcpConnectionPtr& conn)
@@ -17,22 +19,26 @@ void serverConnectionCallback(const TcpConnectionPtr& conn)
         << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    conn->setTcpNoDelay(true);
+    conn->setTcpNoDelay(true); // 禁用nagle算法
   }
   else
   {
   }
 }
 
+// message回调函数，演示了muduo处理分包的做法
 void serverMessageCallback(const TcpConnectionPtr& conn,
                            Buffer* buffer,
                            muduo::Timestamp receiveTime)
 {
   int64_t message[2];
+  // 这里必须要使用while循环
   while (buffer->readableBytes() >= frameLen)
   {
     memcpy(message, buffer->peek(), frameLen);
     buffer->retrieve(frameLen);
+    // 将server上的事件填充在第二个位置上
+    // 这里为什么没有进行字节序的转化？
     message[1] = receiveTime.microSecondsSinceEpoch();
     conn->send(message, sizeof message);
   }
@@ -57,7 +63,7 @@ void clientConnectionCallback(const TcpConnectionPtr& conn)
         << (conn->connected() ? "UP" : "DOWN");
   if (conn->connected())
   {
-    clientConnection = conn;
+    clientConnection = conn; // 保存客户端连接
     conn->setTcpNoDelay(true);
   }
   else
@@ -75,9 +81,9 @@ void clientMessageCallback(const TcpConnectionPtr&,
   {
     memcpy(message, buffer->peek(), frameLen);
     buffer->retrieve(frameLen);
-    int64_t send = message[0];
-    int64_t their = message[1];
-    int64_t back = receiveTime.microSecondsSinceEpoch();
+    int64_t send = message[0]; // 发送时的时间 T1
+    int64_t their = message[1]; // 服务器上的事件 T2
+    int64_t back = receiveTime.microSecondsSinceEpoch(); // 客户端接收时间 T3
     int64_t mine = (back+send)/2;
     LOG_INFO << "round trip " << back - send
              << " clock error " << their - mine;
@@ -94,6 +100,7 @@ void sendMyTime()
   }
 }
 
+// 运行客户端
 void runClient(const char* ip, uint16_t port)
 {
   EventLoop loop;
@@ -102,7 +109,7 @@ void runClient(const char* ip, uint16_t port)
   client.setConnectionCallback(clientConnectionCallback);
   client.setMessageCallback(clientMessageCallback);
   client.connect();
-  loop.runEvery(0.2, sendMyTime);
+  loop.runEvery(0.2, sendMyTime); // 每隔2s 发送一次请求报文
   loop.loop();
 }
 
