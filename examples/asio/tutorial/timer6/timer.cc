@@ -10,6 +10,7 @@
 // Minimize locking
 //
 
+// 这个示例相对于上面那个，缩减了临界区代码的长度
 class Printer : boost::noncopyable
 {
  public:
@@ -34,6 +35,7 @@ class Printer : boost::noncopyable
     bool shouldQuit = false;
     int count = 0;
 
+    // 这里缩减了临界区，仅仅对获取count值得部分，进行了加锁保护
     {
       muduo::MutexLockGuard lock(mutex_);
       if (count_ < 10)
@@ -105,6 +107,7 @@ private:
 
 int main()
 {
+  // 参考time5中得说明
   boost::scoped_ptr<Printer> printer;  // make sure printer lives longer than loops, to avoid
                                        // race condition of calling print2() on destructed object.
   muduo::net::EventLoop loop;
