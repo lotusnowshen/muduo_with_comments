@@ -57,7 +57,7 @@ class DiscardClient : boost::noncopyable
 
   void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp time)
   {
-    buf->retrieveAll();
+    buf->retrieveAll(); // 丢弃消息
   }
 
   void onWriteComplete(const TcpConnectionPtr& conn)
@@ -85,6 +85,7 @@ int main(int argc, char* argv[])
       size = atoi(argv[2]);
     }
 
+    // 可以通过命令行指定一次发送的消息长度
     DiscardClient client(&loop, serverAddr, size);
     client.connect();
     loop.loop();

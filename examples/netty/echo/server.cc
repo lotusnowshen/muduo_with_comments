@@ -18,6 +18,8 @@ using namespace muduo::net;
 
 int numThreads = 0;
 
+// 这个示例与discard基本无区别，仅仅在于是discard还是echo
+
 class EchoServer
 {
  public:
@@ -54,7 +56,7 @@ class EchoServer
     size_t len = buf->readableBytes();
     transferred_.addAndGet(len);
     receivedMessages_.incrementAndGet();
-    conn->send(buf);
+    conn->send(buf); // 回显消息
   }
 
   void printThroughput()

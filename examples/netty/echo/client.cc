@@ -55,7 +55,7 @@ class EchoClient : boost::noncopyable
 
   void onMessage(const TcpConnectionPtr& conn, Buffer* buf, Timestamp time)
   {
-    conn->send(buf);
+    conn->send(buf); // 这里也是将消息回显
   }
 
   EventLoop* loop_;

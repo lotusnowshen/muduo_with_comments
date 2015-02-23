@@ -69,10 +69,11 @@ class EchoServer
   void printThroughput()
   {
     Timestamp endTime = Timestamp::now();
-    double bytes = static_cast<double>(transferredBytes_.getAndSet(0));
-    int msgs = receivedMessages_.getAndSet(0);
-    double bytesPerMsg = msgs > 0 ?  bytes/msgs : 0;
-    double time = timeDifference(endTime, startTime_);
+    double bytes = static_cast<double>(transferredBytes_.getAndSet(0)); // 字节数目
+    int msgs = receivedMessages_.getAndSet(0);  // 消息数目
+    double bytesPerMsg = msgs > 0 ?  bytes/msgs : 0; // 消息的平均长度
+    double time = timeDifference(endTime, startTime_); // 时间差
+    // 打印每条消息的平均长度、以及平均每秒的消息数目和传输速率
     printf("%.3f MiB/s %.2f Kilo Msgs/s %.2f bytes per msg, ",
         bytes/time/1024/1024,
         static_cast<double>(msgs)/time/1000,
@@ -80,9 +81,10 @@ class EchoServer
 
     printConnection();
     fflush(stdout);
-    startTime_ = endTime;
+    startTime_ = endTime; // 重新计数
   }
 
+  // 打印连接的相关信息
   void printConnection()
   {
     string procStatus = ProcessInfo::procStatus();
@@ -102,6 +104,7 @@ class EchoServer
            total_kb - free_kb - buffers_kb - cached_kb);
   }
 
+  // 从字符串中获取key的值
   long getLong(const string& procStatus, const char* key)
   {
     long result = 0;
@@ -114,10 +117,10 @@ class EchoServer
   }
 
   TcpServer server_;
-  AtomicInt32 connections_;
-  AtomicInt32 receivedMessages_;
-  AtomicInt64 transferredBytes_;
-  Timestamp startTime_;
+  AtomicInt32 connections_; // tcp连接的数目
+  AtomicInt32 receivedMessages_; // 接收到的消息数目
+  AtomicInt64 transferredBytes_; // 传输的字节数目
+  Timestamp startTime_; // 记录开始时间
 };
 
 int main(int argc, char* argv[])
