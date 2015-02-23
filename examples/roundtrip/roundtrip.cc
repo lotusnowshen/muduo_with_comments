@@ -9,6 +9,28 @@ using namespace muduo;
 using namespace muduo::net;
 
 // 此例可用于计算两台机器的时延，参考http://blog.csdn.net/solstice/article/details/6335082
+/*
+
+本地环路测试如下：
+20150223 09:15:12.916585Z 10351 INFO  round trip 80 clock error 19 - roundtrip.cc:82
+20150223 09:15:13.117041Z 10351 INFO  round trip 76 clock error 16 - roundtrip.cc:82
+20150223 09:15:13.318220Z 10351 INFO  round trip 75 clock error 16 - roundtrip.cc:82
+20150223 09:15:13.519616Z 10351 INFO  round trip 77 clock error 16 - roundtrip.cc:82
+20150223 09:15:13.720432Z 10351 INFO  round trip 95 clock error 17 - roundtrip.cc:82
+20150223 09:15:13.921800Z 10351 INFO  round trip 73 clock error 15 - roundtrip.cc:82
+20150223 09:15:14.123128Z 10351 INFO  round trip 83 clock error 18 - roundtrip.cc:82
+20150223 09:15:14.323512Z 10351 INFO  round trip 77 clock error 17 - roundtrip.cc:82
+20150223 09:15:14.524939Z 10351 INFO  round trip 74 clock error 16 - roundtrip.cc:82
+20150223 09:15:14.725604Z 10351 INFO  round trip 77 clock error 16 - roundtrip.cc:82
+20150223 09:15:14.926722Z 10351 INFO  round trip 76 clock error 15 - roundtrip.cc:82
+20150223 09:15:15.126877Z 10351 INFO  round trip 83 clock error 15 - roundtrip.cc:82
+20150223 09:15:15.328138Z 10351 INFO  round trip 76 clock error 15 - roundtrip.cc:82
+20150223 09:15:15.528649Z 10351 INFO  round trip 75 clock error 16 - roundtrip.cc:82
+20150223 09:15:15.730021Z 10351 INFO  round trip 87 clock error 20 - roundtrip.cc:82
+
+可以看出 RTT在15-20左右，而clock error固定在82
+
+*/
 
 const size_t frameLen = 2*sizeof(int64_t);
 
@@ -109,7 +131,7 @@ void runClient(const char* ip, uint16_t port)
   client.setConnectionCallback(clientConnectionCallback);
   client.setMessageCallback(clientMessageCallback);
   client.connect();
-  loop.runEvery(0.2, sendMyTime); // 每隔2s 发送一次请求报文
+  loop.runEvery(0.2, sendMyTime); // 每隔0.2s 发送一次请求报文
   loop.loop();
 }
 
