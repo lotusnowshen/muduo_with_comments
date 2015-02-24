@@ -44,6 +44,7 @@ class ChatServer : boost::noncopyable
         << conn->peerAddress().toIpPort() << " is "
         << (conn->connected() ? "UP" : "DOWN");
 
+    // 必须对容器加锁
     MutexLockGuard lock(mutex_);
     if (conn->connected())
     {
@@ -59,6 +60,7 @@ class ChatServer : boost::noncopyable
                        const string& message,
                        Timestamp)
   {
+    // 读取容器也必须加锁
     MutexLockGuard lock(mutex_);
     for (ConnectionList::iterator it = connections_.begin();
         it != connections_.end();
