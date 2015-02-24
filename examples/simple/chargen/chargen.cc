@@ -68,6 +68,8 @@ void ChargenServer::onMessage(const TcpConnectionPtr& conn,
            << " bytes received at " << time.toString();
 }
 
+// 这里仅当上次发送的字节完全写入对方缓冲区时，才发送新的msg
+// 所以发送的速度受制于对方接收的速度
 void ChargenServer::onWriteComplete(const TcpConnectionPtr& conn)
 {
   transferred_ += message_.size(); // 记录总共传输的字节数
