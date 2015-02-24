@@ -15,6 +15,16 @@
 using namespace muduo;
 using namespace muduo::net;
 
+
+/*
+  这是Chat的一个高性能版本，它的高性能体现在：
+  1. 采用了多个Reactor线程
+  2. 以往是将connections作为全局变量，这里采用threadlocal存储，每个loop存储自己拥有的连接
+      收到消息后，依次命令所有loop往自己的连接发送消息即可
+  3. 因为采用了多个Reactor，所以仅仅在分发消息的时候，对loops上锁，里面没有阻塞操作，甚至不涉及IO操作
+      如果还需提高性能，可以考虑每次都拷贝一份loops的副本
+*/
+
 class ChatServer : boost::noncopyable
 {
  public:
@@ -36,6 +46,7 @@ class ChatServer : boost::noncopyable
 
   void start()
   {
+    // 设置loop线程初始化函数
     server_.setThreadInitCallback(boost::bind(&ChatServer::threadInit, this, _1));
     server_.start();
   }
@@ -61,10 +72,12 @@ class ChatServer : boost::noncopyable
                        const string& message,
                        Timestamp)
   {
+    // 分发消息的任务
     EventLoop::Functor f = boost::bind(&ChatServer::distributeMessage, this, message);
     LOG_DEBUG;
 
     MutexLockGuard lock(mutex_);
+    // 依次命令每个loop去执行分发消息的任务
     for (std::set<EventLoop*>::iterator it = loops_.begin();
         it != loops_.end();
         ++it)
@@ -76,9 +89,12 @@ class ChatServer : boost::noncopyable
 
   typedef std::set<TcpConnectionPtr> ConnectionList;
 
+  // 分发消息，这个函数由每个loop去执行
   void distributeMessage(const string& message)
   {
     LOG_DEBUG << "begin";
+    // 因为LocalConnections是线程局部的，所以每个loop调用LocalConnections::instance()
+    // 获得的connections也是不同的
     for (ConnectionList::iterator it = LocalConnections::instance().begin();
         it != LocalConnections::instance().end();
         ++it)
@@ -90,7 +106,10 @@ class ChatServer : boost::noncopyable
 
   void threadInit(EventLoop* loop)
   {
+    // 每个loop线程在初始化时，都先实例化一个ConnectionList，这个是线程局部的
+    // 然后将loop加入loops_中
     assert(LocalConnections::pointer() == NULL);
+    // 底层调用了pthread_setspecific，设置了一个线程私有变量
     LocalConnections::instance();
     assert(LocalConnections::pointer() != NULL);
     MutexLockGuard lock(mutex_);
@@ -99,10 +118,11 @@ class ChatServer : boost::noncopyable
 
   TcpServer server_;
   LengthHeaderCodec codec_;
+  // 线程局部的ConnectionList，而且是单例
   typedef ThreadLocalSingleton<ConnectionList> LocalConnections;
 
   MutexLock mutex_;
-  std::set<EventLoop*> loops_;
+  std::set<EventLoop*> loops_; // 线程池中loop的集合
 };
 
 int main(int argc, char* argv[])
