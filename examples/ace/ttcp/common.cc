@@ -56,6 +56,7 @@ bool parseCommandLine(int argc, char* argv[], Options* opt)
 
 #pragma GCC diagnostic ignored "-Wold-style-cast"
 
+// 解析域名，这里使用的是阻塞的方式
 struct sockaddr_in resolveOrDie(const char* host, uint16_t port)
 {
   struct hostent* he = ::gethostbyname(host);

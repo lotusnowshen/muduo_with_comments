@@ -17,6 +17,7 @@ static int acceptOrDie(uint16_t port)
   assert(listenfd >= 0);
 
   int yes = 1;
+  // 地址复用
   if (setsockopt(listenfd, SOL_SOCKET, SO_REUSEADDR, &yes, sizeof(yes)))
   {
     perror("setsockopt");
@@ -49,10 +50,11 @@ static int acceptOrDie(uint16_t port)
     perror("accept");
     exit(1);
   }
-  ::close(listenfd);
+  ::close(listenfd); // 关闭listenfd 是不打算具备并发能力
   return sockfd;
 }
 
+// 写满n个字节
 static int write_n(int sockfd, const void* buf, int length)
 {
   int written = 0;
@@ -72,6 +74,7 @@ static int write_n(int sockfd, const void* buf, int length)
   return written;
 }
 
+// 读满n个字节
 static int read_n(int sockfd, void* buf, int length)
 {
   int nread = 0;
@@ -91,6 +94,7 @@ static int read_n(int sockfd, void* buf, int length)
   return nread;
 }
 
+// 客户端发送消息
 void transmit(const Options& opt)
 {
   struct sockaddr_in addr = resolveOrDie(opt.host.c_str(), opt.port);
@@ -112,6 +116,7 @@ void transmit(const Options& opt)
   struct SessionMessage sessionMessage = { 0, 0 };
   sessionMessage.number = htonl(opt.number);
   sessionMessage.length = htonl(opt.length);
+  // 发送消息的长度和数目
   if (write_n(sockfd, &sessionMessage, sizeof(sessionMessage)) != sizeof(sessionMessage))
   {
     perror("write SessionMessage");
@@ -129,10 +134,12 @@ void transmit(const Options& opt)
 
   for (int i = 0; i < opt.number; ++i)
   {
+    // 发送报文
     int nw = write_n(sockfd, payload, total_len);
     assert(nw == total_len);
 
     int ack = 0;
+    // 接收ACK回应
     int nr = read_n(sockfd, &ack, sizeof(ack));
     assert(nr == sizeof(ack));
     ack = ntohl(ack);
@@ -141,16 +148,19 @@ void transmit(const Options& opt)
 
   ::free(payload);
   ::close(sockfd);
+  // 统计性能 传输了多少字节 速度是多少
   double elapsed = timeDifference(muduo::Timestamp::now(), start);
   double total_mb = 1.0 * opt.length * opt.number / 1024 / 1024;
   printf("%.3f MiB transferred\n%.3f MiB/s\n", total_mb, total_mb / elapsed);
 }
 
+// 服务器接收消息
 void receive(const Options& opt)
 {
   int sockfd = acceptOrDie(opt.port);
 
   struct SessionMessage sessionMessage = { 0, 0 };
+  // 接收消息的长度和数目
   if (read_n(sockfd, &sessionMessage, sizeof(sessionMessage)) != sizeof(sessionMessage))
   {
     perror("read SessionMessage");
@@ -162,12 +172,15 @@ void receive(const Options& opt)
   printf("receive number = %d\nreceive length = %d\n",
          sessionMessage.number, sessionMessage.length);
   const int total_len = static_cast<int>(sizeof(int32_t) + sessionMessage.length);
+  // 这是一个C技巧，结构体的大小在运行期间确定
   PayloadMessage* payload = static_cast<PayloadMessage*>(::malloc(total_len));
   assert(payload);
 
+  // 依次接收number条报文
   for (int i = 0; i < sessionMessage.number; ++i)
   {
     payload->length = 0;
+    // 接收报文长度
     if (read_n(sockfd, &payload->length, sizeof(payload->length)) != sizeof(payload->length))
     {
       perror("read length");
@@ -175,12 +188,14 @@ void receive(const Options& opt)
     }
     payload->length = ntohl(payload->length);
     assert(payload->length == sessionMessage.length);
+    // 接收正式报文
     if (read_n(sockfd, payload->data, payload->length) != payload->length)
     {
       perror("read payload data");
       exit(1);
     }
     int32_t ack = htonl(payload->length);
+    // 发送ACK回应
     if (write_n(sockfd, &ack, sizeof(ack)) != sizeof(ack))
     {
       perror("write ack");
