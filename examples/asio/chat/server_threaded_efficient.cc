@@ -14,6 +14,9 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 这个版本，相对于server_threaded版本，借助shared_ptr，实现了写时复制，
+// 当仅仅读取connections_时，不必加锁，提高了程序的性能
+
 class ChatServer : boost::noncopyable
 {
  public:
@@ -47,8 +50,11 @@ class ChatServer : boost::noncopyable
         << (conn->connected() ? "UP" : "DOWN");
 
     MutexLockGuard lock(mutex_);
-    if (!connections_.unique())
+    // 当connections_的引用计数大于1时
+    // 说明此时有其他地方在使用这个数据
+    if (!connections_.unique()) 
     {
+      // 创建一个新的copy
       connections_.reset(new ConnectionList(*connections_));
     }
     assert(connections_.unique());
@@ -63,13 +69,17 @@ class ChatServer : boost::noncopyable
     }
   }
 
-  typedef std::set<TcpConnectionPtr> ConnectionList;
-  typedef boost::shared_ptr<ConnectionList> ConnectionListPtr;
+  typedef std::set<TcpConnectionPtr> ConnectionList; // 客户连接的集合
+  typedef boost::shared_ptr<ConnectionList> ConnectionListPtr; // 客户连接集合的指针
 
   void onStringMessage(const TcpConnectionPtr&,
                        const string& message,
                        Timestamp)
   {
+    // 获取一个智能指针
+    // 这里不用加锁，因为这里在使用时，connections_的引用计数大于1
+    // 所以当在onConnection中试图改动connections_时，会创建一个新的副本
+    // 这实际上是一种写时复制技术
     ConnectionListPtr connections = getConnectionList();;
     for (ConnectionList::iterator it = connections->begin();
         it != connections->end();
@@ -79,6 +89,7 @@ class ChatServer : boost::noncopyable
     }
   }
 
+  // 返回的不是一个副本，而是一个智能指针
   ConnectionListPtr getConnectionList()
   {
     MutexLockGuard lock(mutex_);
@@ -88,7 +99,7 @@ class ChatServer : boost::noncopyable
   TcpServer server_;
   LengthHeaderCodec codec_;
   MutexLock mutex_;
-  ConnectionListPtr connections_;
+  ConnectionListPtr connections_; // 这是set的智能指针
 };
 
 int main(int argc, char* argv[])

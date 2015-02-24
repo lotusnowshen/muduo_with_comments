@@ -13,6 +13,9 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 这个版本采用了多线程，因此在read和write时，都必须对connections_进行加锁保护
+// 但是并发量大时，明显效率较低
+
 class ChatServer : boost::noncopyable
 {
  public:
