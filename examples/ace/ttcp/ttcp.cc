@@ -14,13 +14,17 @@ using namespace muduo::net;
 
 EventLoop* g_loop;
 
+/*
+  非阻塞的ttcp，主要是处理好上下文
+*/
+
 // 上下文信息
 struct Context
 {
-  int count;
-  int64_t bytes;
+  int count; // 发送或者接收的消息数目
+  int64_t bytes;  // 发送或者接收的字节数
   SessionMessage session; // 控制信息
-  Buffer output;
+  Buffer output;  // 暂存报文
 
   Context()
     : count(0),
