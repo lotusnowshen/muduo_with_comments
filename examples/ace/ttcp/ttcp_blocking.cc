@@ -11,6 +11,11 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+/*
+
+  ttcp的阻塞版本，实现较简单，封装好send_n 和 read_n即可
+*/
+
 static int acceptOrDie(uint16_t port)
 {
   int listenfd = ::socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
