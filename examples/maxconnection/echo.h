@@ -21,8 +21,8 @@ class EchoServer
                  muduo::Timestamp time);
 
   muduo::net::TcpServer server_;
-  int numConnected_; // should be atomic_int
-  const int kMaxConnections_;
+  int numConnected_; // should be atomic_int 记录客户连接数目
+  const int kMaxConnections_; // 最大连接数量
 };
 
 #endif  // MUDUO_EXAMPLES_SIMPLE_ECHO_ECHO_H

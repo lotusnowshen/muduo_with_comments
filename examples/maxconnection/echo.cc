@@ -34,6 +34,7 @@ void EchoServer::onConnection(const TcpConnectionPtr& conn)
   if (conn->connected())
   {
     ++numConnected_;
+    // 超过最大连接数，就强行断开
     if (numConnected_ > kMaxConnections_)
     {
       conn->shutdown();
