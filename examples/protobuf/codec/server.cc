@@ -26,6 +26,7 @@ class QueryServer : boost::noncopyable
     dispatcher_(boost::bind(&QueryServer::onUnknownMessage, this, _1, _2, _3)),
     codec_(boost::bind(&ProtobufDispatcher::onProtobufMessage, &dispatcher_, _1, _2, _3))
   {
+    // 向消息分发器注册消息的回调函数
     dispatcher_.registerMessageCallback<muduo::Query>(
         boost::bind(&QueryServer::onQuery, this, _1, _2, _3));
     dispatcher_.registerMessageCallback<muduo::Answer>(
@@ -49,6 +50,7 @@ class QueryServer : boost::noncopyable
         << (conn->connected() ? "UP" : "DOWN");
   }
 
+  // 处理未知信息
   void onUnknownMessage(const TcpConnectionPtr& conn,
                         const MessagePtr& message,
                         Timestamp)
@@ -57,6 +59,7 @@ class QueryServer : boost::noncopyable
     conn->shutdown();
   }
 
+  // 处理query 返回答案
   void onQuery(const muduo::net::TcpConnectionPtr& conn,
                const QueryPtr& message,
                muduo::Timestamp)
@@ -73,6 +76,7 @@ class QueryServer : boost::noncopyable
     conn->shutdown();
   }
 
+  // 处理答案，打印之，然后关闭连接
   void onAnswer(const muduo::net::TcpConnectionPtr& conn,
                 const AnswerPtr& message,
                 muduo::Timestamp)
@@ -82,8 +86,8 @@ class QueryServer : boost::noncopyable
   }
 
   TcpServer server_;
-  ProtobufDispatcher dispatcher_;
-  ProtobufCodec codec_;
+  ProtobufDispatcher dispatcher_;  // 消息分发器
+  ProtobufCodec codec_;  // 编解码器
 };
 
 int main(int argc, char* argv[])

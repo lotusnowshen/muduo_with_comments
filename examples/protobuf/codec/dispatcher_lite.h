@@ -24,6 +24,7 @@ typedef boost::shared_ptr<google::protobuf::Message> MessagePtr;
 class ProtobufDispatcherLite : boost::noncopyable
 {
  public:
+  // 这里的回调函数有个缺点，类型都是message* 而不是具体的类型
   typedef boost::function<void (const muduo::net::TcpConnectionPtr&,
                                 const MessagePtr&,
                                 muduo::Timestamp)> ProtobufMessageCallback;

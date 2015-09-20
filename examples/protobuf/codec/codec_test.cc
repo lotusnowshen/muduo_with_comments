@@ -89,6 +89,8 @@ void testEmpty()
   assert(message->DebugString() == empty.DebugString());
 }
 
+
+// 重新计算校验值
 void redoCheckSum(string& data, int len)
 {
   int32_t checkSum = sockets::hostToNetwork32(static_cast<int32_t>(
@@ -116,7 +118,7 @@ void testBadBuffer()
   {
     string data(buf.peek(), len);
     ProtobufCodec::ErrorCode errorCode = ProtobufCodec::kNoError;
-    MessagePtr message = ProtobufCodec::parse(data.c_str(), len-1, &errorCode);
+    MessagePtr message = ProtobufCodec::parse(data.c_str(), len-1, &errorCode); // 长度-1
     assert(message == NULL);
     assert(errorCode == ProtobufCodec::kCheckSumError);
   }

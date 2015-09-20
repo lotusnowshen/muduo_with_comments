@@ -46,6 +46,7 @@ class ProtobufCodec : boost::noncopyable
     kParseError,
   };
 
+  // 收到protobuf完整消息时的回调函数
   typedef boost::function<void (const muduo::net::TcpConnectionPtr&,
                                 const MessagePtr&,
                                 muduo::Timestamp)> ProtobufMessageCallback;
@@ -67,10 +68,12 @@ class ProtobufCodec : boost::noncopyable
   {
   }
 
+  // 处理tcp消息的回调函数
   void onMessage(const muduo::net::TcpConnectionPtr& conn,
                  muduo::net::Buffer* buf,
                  muduo::Timestamp receiveTime);
 
+  // 发送proto消息时调用的函数，用户不要使用 conn->send
   void send(const muduo::net::TcpConnectionPtr& conn,
             const google::protobuf::Message& message)
   {
@@ -86,13 +89,14 @@ class ProtobufCodec : boost::noncopyable
   static MessagePtr parse(const char* buf, int len, ErrorCode* errorCode);
 
  private:
+  // 默认的错误处理函数
   static void defaultErrorCallback(const muduo::net::TcpConnectionPtr&,
                                    muduo::net::Buffer*,
                                    muduo::Timestamp,
                                    ErrorCode);
 
-  ProtobufMessageCallback messageCallback_;
-  ErrorCallback errorCallback_;
+  ProtobufMessageCallback messageCallback_;  // 处理protobuf消息的回调函数
+  ErrorCallback errorCallback_;  // 错误处理回调
 
   const static int kHeaderLen = sizeof(int32_t);
   const static int kMinMessageLen = 2*kHeaderLen + 2; // nameLen + typeName + checkSum

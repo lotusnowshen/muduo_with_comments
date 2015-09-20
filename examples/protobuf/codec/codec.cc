@@ -19,30 +19,33 @@
 using namespace muduo;
 using namespace muduo::net;
 
+// 用proto消息去填充buffer
 void ProtobufCodec::fillEmptyBuffer(Buffer* buf, const google::protobuf::Message& message)
 {
   // buf->retrieveAll();
   assert(buf->readableBytes() == 0);
 
-  const std::string& typeName = message.GetTypeName();
+  const std::string& typeName = message.GetTypeName(); // 消息类型
   int32_t nameLen = static_cast<int32_t>(typeName.size()+1);
-  buf->appendInt32(nameLen);
-  buf->append(typeName.c_str(), nameLen);
+  buf->appendInt32(nameLen);  // 放入name长度
+  buf->append(typeName.c_str(), nameLen);  // 放入name
 
   // code copied from MessageLite::SerializeToArray() and MessageLite::SerializePartialToArray().
   GOOGLE_DCHECK(message.IsInitialized()) << InitializationErrorMessage("serialize", message);
 
-  int byte_size = message.ByteSize();
-  buf->ensureWritableBytes(byte_size);
+  int byte_size = message.ByteSize();   // proto消息序列化之后长度
+  buf->ensureWritableBytes(byte_size);  // 拓展空间，使之能存放proto消息
 
   uint8_t* start = reinterpret_cast<uint8_t*>(buf->beginWrite());
-  uint8_t* end = message.SerializeWithCachedSizesToArray(start);
+  uint8_t* end = message.SerializeWithCachedSizesToArray(start);  // 将proto消息序列化到
   if (end - start != byte_size)
   {
+    // 处理数据不一致错误
     ByteSizeConsistencyError(byte_size, message.ByteSize(), static_cast<int>(end - start));
   }
   buf->hasWritten(byte_size);
 
+  // 使用adler32算法计算校验值
   int32_t checkSum = static_cast<int32_t>(
       ::adler32(1,
                 reinterpret_cast<const Bytef*>(buf->peek()),
@@ -112,6 +115,7 @@ int32_t asInt32(const char* buf)
   return sockets::networkToHost32(be32);
 }
 
+// 处理protobuf消息的分包
 void ProtobufCodec::onMessage(const TcpConnectionPtr& conn,
                               Buffer* buf,
                               Timestamp receiveTime)
@@ -127,6 +131,7 @@ void ProtobufCodec::onMessage(const TcpConnectionPtr& conn,
     else if (buf->readableBytes() >= implicit_cast<size_t>(len + kHeaderLen))
     {
       ErrorCode errorCode = kNoError;
+      // 解析消息
       MessagePtr message = parse(buf->peek()+kHeaderLen, len, &errorCode);
       if (errorCode == kNoError && message)
       {
@@ -146,6 +151,7 @@ void ProtobufCodec::onMessage(const TcpConnectionPtr& conn,
   }
 }
 
+// 根据typename，创建对应的消息对象
 google::protobuf::Message* ProtobufCodec::createMessage(const std::string& typeName)
 {
   google::protobuf::Message* message = NULL;
@@ -163,6 +169,7 @@ google::protobuf::Message* ProtobufCodec::createMessage(const std::string& typeN
   return message;
 }
 
+// 从报文中解析出消息
 MessagePtr ProtobufCodec::parse(const char* buf, int len, ErrorCode* error)
 {
   MessagePtr message;
@@ -180,7 +187,7 @@ MessagePtr ProtobufCodec::parse(const char* buf, int len, ErrorCode* error)
     if (nameLen >= 2 && nameLen <= len - 2*kHeaderLen)
     {
       std::string typeName(buf + kHeaderLen, buf + kHeaderLen + nameLen - 1);
-      // create message object
+      // 根据消息类型，创建对应的消息对象
       message.reset(createMessage(typeName));
       if (message)
       {
@@ -189,26 +196,26 @@ MessagePtr ProtobufCodec::parse(const char* buf, int len, ErrorCode* error)
         int32_t dataLen = len - nameLen - 2*kHeaderLen;
         if (message->ParseFromArray(data, dataLen))
         {
-          *error = kNoError;
+          *error = kNoError;  // 无错误
         }
         else
         {
-          *error = kParseError;
+          *error = kParseError;  // 解析错误
         }
       }
       else
       {
-        *error = kUnknownMessageType;
+        *error = kUnknownMessageType;  // 未知的消息类型
       }
     }
     else
     {
-      *error = kInvalidNameLen;
+      *error = kInvalidNameLen;   // 非法的name长度信息
     }
   }
   else
   {
-    *error = kCheckSumError;
+    *error = kCheckSumError;  // 数据校验错误
   }
 
   return message;
